@@ -1,4 +1,4 @@
-import numpy as np
+.import numpy as np
 from tqdm import tqdm
 import pickle
 import random
@@ -708,8 +708,9 @@ class Second_Layer(Neal_3):
     
         for step in range(n_steps):  # Markov chain
     
-            for clust in initial_partition:
+            for clust in self.initial_partition:
                 # 1. Trova il cluster che contiene `clust`
+                print(" ")
                 print("Cerco il cluster ", clust)
                 c = 0
                 for idx in range(len(clusters)):
@@ -723,6 +724,9 @@ class Second_Layer(Neal_3):
                     del clusters[c]  # Rimuove l'intero cluster
                 else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
                     clusters[c] = [x for x in clusters[c] if x not in clust]
+
+                print("Ho rimosso ", clust)
+                print("Sono rimasti:" clusters)
     
                 # 3. Calcola le probabilità di assegnazione del cluster
                 weights = self.cluster_probabilities(clust, clusters)
