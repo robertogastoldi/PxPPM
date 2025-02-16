@@ -535,27 +535,27 @@ def compute_kernels(self, cluster):
     """
     n = len(cluster)    # Number of element currently in cluster (used n to be consistent with Murphy (2007) notation)
         
-        cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
-        cluster_mean = np.mean(cluster_Y, axis=0)
+    cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
+    cluster_mean = np.mean(cluster_Y, axis=0)
 
-        # Based on Murphy (2007)
-        mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
-        lamb_n = self.lamb_0 + n
-        nu_n = self.nu_0 + n
+    # Based on Murphy (2007)
+    mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
+    lamb_n = self.lamb_0 + n
+    nu_n = self.nu_0 + n
         
-        # Compute scatter matrix
-        S = np.zeros((self.D,self.D))
-        for j in range(n):
-            temp = self.Y[j] - cluster_mean
-            S += np.outer(temp, temp)
-        temp = cluster_mean - self.mu_0
-        inv_scale_mat_n = self.inv_scale_mat_0 + S + ((self.lamb_0 * n) / (self.lamb_0 + n)) * np.outer(temp, temp)
+    # Compute scatter matrix
+    S = np.zeros((self.D,self.D))
+    for j in range(n):
+        temp = self.Y[j] - cluster_mean
+        S += np.outer(temp, temp)
+    temp = cluster_mean - self.mu_0
+    inv_scale_mat_n = self.inv_scale_mat_0 + S + ((self.lamb_0 * n) / (self.lamb_0 + n)) * np.outer(temp, temp)
 
-        # Computes integral using pdf of multivariate gaussian distribution
-        kernel = 1
-        for i in cluster:
-            kernel *= multivariate_normal.pdf(self.Y[i], mean=mu_n, cov=inv_scale_mat_n)
-        return kernel
+    # Computes integral using pdf of multivariate gaussian distribution
+    kernel = 1
+    for i in cluster:
+        kernel *= multivariate_normal.pdf(self.Y[i], mean=mu_n, cov=inv_scale_mat_n)
+    return kernel
 
 def integral_func_1(self, cluster, clust):
         """
