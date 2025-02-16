@@ -710,23 +710,17 @@ class Second_Layer(Neal_3):
     
             for clust in copy.deepcopy(initial_partition):
                 # 1. Trova il cluster che contiene `clust`
-                print(" ")
-                print("Cerco il cluster ", clust)
                 c = 0
                 for idx in range(len(clusters)):
                     if set(clust).issubset(set(clusters[idx])):
                         c = idx
                         break
 
-                print("L'ho trovato in ", clusters[c])
                 # 2. Rimuove `clust` da `clusters`
                 if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
                     del clusters[c]  # Rimuove l'intero cluster
                 else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
                     clusters[c] = [x for x in clusters[c] if x not in clust]
-
-                print("Ho rimosso ", clust)
-                print("Sono rimasti: ", clusters)
     
                 # 3. Calcola le probabilità di assegnazione del cluster
                 weights = self.cluster_probabilities(clust, clusters)
