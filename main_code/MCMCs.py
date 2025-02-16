@@ -524,7 +524,7 @@ class Second_Layer(Neal_3):
         return penalty
 
     def compute_kernels(self, cluster):
-    """
+        """
         Computes the second integral using the Student-t distribution based on Murphy (2007) parameters.
 
         Parameters:
