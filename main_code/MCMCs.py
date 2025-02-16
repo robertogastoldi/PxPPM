@@ -526,7 +526,7 @@ class Second_Layer(Neal_3):
 
     def compute_kernels(self, cluster):
         """
-        Computes the second integral using the Student-t distribution based on Murphy (2007) parameters.
+        Computes the product of the kernels of all elements belonging in cluster
 
         Parameters:
             cluster (list of int): A list of observations in cluster clust for which the kernel is computed.
