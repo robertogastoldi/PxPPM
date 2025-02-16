@@ -4,6 +4,7 @@ import pickle
 import random
 import copy
 from scipy.stats import multivariate_t
+from scipy.stats import multivariate_normal
 from scipy.spatial.distance import mahalanobis
 from main_code.partitions_analysis import compute_entropy
 
