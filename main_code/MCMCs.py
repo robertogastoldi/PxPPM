@@ -621,82 +621,82 @@ class Second_Layer(Neal_3):
 
 
     def fit(self, Y, X, initial_partition, n_steps, lambda_penalty=0.1, metrics=["entropy"]):
-    """
-    Parameters:
-        Y (np.ndarray): A 2D array of observations, where each row represents an observation 
-                        and each column represents a feature. Shape is (n_observations, D).
-        X (numpy.ndarray): Covariate matrix used for computing the Mahalanobis penalty.
-        initial_partition (list of list): Optimal partition of the 1st layer.
-        n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
-                    moving each observation once.
-        lambda_penalty (float, optional): Weight for the Mahalanobis distance penalty. Defaults to 0.1.
-                                          If set to 0, this algorithm is equivalent to Neal_3.
-        metrics (list of str, optional): A list of metric names to compute during runtime. 
-                                        Currently, only "entropy" is implemented. Defaults to ["entropy"].
-
-    Returns:
-        list of lists: A history of partitions at each step of the Markov chain, where each 
-                    partition is represented as a list of clusters (each cluster is a list 
-                    of observation indices).
-    """
-    # Set basic attributes
-    self.X = X
-    self.lambda_penalty = lambda_penalty
-    self.initial_partition = initial_partition
-    self.n_partitions = len(initial_partition)
-    self.Y = Y
-    self.n_obs = len(Y)
-    self.D = Y.shape[1]
-    self.compute_mu_0()
-    self.compute_inv_scale_mat_0()
-    self.compute_nu_0()
-
-    # Initialize clusters
-    clusters = copy.deepcopy(initial_partition)  # Evita modifiche accidentali all'originale
-
-    self.history = [copy.deepcopy(clusters)]
-
-    # Update metrics
-    self.update_metrics(metrics, clusters)
-
-    # Initialize progress bar
-    progress_bar = tqdm(total=n_steps, desc="MCMC Progress", unit="step")
-
-    for step in range(n_steps):  # Markov chain
-
-        for clust in initial_partition:
-            # 1. Trova il cluster che contiene `clust`
-            c = next((index for index, cluster in enumerate(clusters) if set(clust) == set(cluster)), None)
-
-            # 2. Rimuove `clust` da `clusters`
-            if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
-                del clusters[c]  # Rimuove l'intero cluster
-            else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
-                clusters[c] = [x for x in clusters[c] if x not in clust]
-
-            # 3. Calcola le probabilità di assegnazione del cluster
-            weights = self.cluster_probabilities(clust, clusters)
-            transitions = list(range(len(weights)))
-            transition = random.choices(transitions, weights=weights)[0]
-
-            # 4. Applica la transizione
-            if transition == len(clusters):  # Se viene creato un nuovo cluster
-                clusters.append(clust)
-            else:
-                clusters[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
-        
-        # Fine del passo MCMC
-        self.history.append(copy.deepcopy(clusters))
-        
+        """
+        Parameters:
+            Y (np.ndarray): A 2D array of observations, where each row represents an observation 
+                            and each column represents a feature. Shape is (n_observations, D).
+            X (numpy.ndarray): Covariate matrix used for computing the Mahalanobis penalty.
+            initial_partition (list of list): Optimal partition of the 1st layer.
+            n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
+                        moving each observation once.
+            lambda_penalty (float, optional): Weight for the Mahalanobis distance penalty. Defaults to 0.1.
+                                              If set to 0, this algorithm is equivalent to Neal_3.
+            metrics (list of str, optional): A list of metric names to compute during runtime. 
+                                            Currently, only "entropy" is implemented. Defaults to ["entropy"].
+    
+        Returns:
+            list of lists: A history of partitions at each step of the Markov chain, where each 
+                        partition is represented as a list of clusters (each cluster is a list 
+                        of observation indices).
+        """
+        # Set basic attributes
+        self.X = X
+        self.lambda_penalty = lambda_penalty
+        self.initial_partition = initial_partition
+        self.n_partitions = len(initial_partition)
+        self.Y = Y
+        self.n_obs = len(Y)
+        self.D = Y.shape[1]
+        self.compute_mu_0()
+        self.compute_inv_scale_mat_0()
+        self.compute_nu_0()
+    
+        # Initialize clusters
+        clusters = copy.deepcopy(initial_partition)  # Evita modifiche accidentali all'originale
+    
+        self.history = [copy.deepcopy(clusters)]
+    
         # Update metrics
         self.update_metrics(metrics, clusters)
-
-        # Update progress bar
-        progress_bar.update(1)
-
-    # Chiudi progress bar
-    progress_bar.close()
-
-    return self.history
+    
+        # Initialize progress bar
+        progress_bar = tqdm(total=n_steps, desc="MCMC Progress", unit="step")
+    
+        for step in range(n_steps):  # Markov chain
+    
+            for clust in initial_partition:
+                # 1. Trova il cluster che contiene `clust`
+                c = next((index for index, cluster in enumerate(clusters) if set(clust) == set(cluster)), None)
+    
+                # 2. Rimuove `clust` da `clusters`
+                if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
+                    del clusters[c]  # Rimuove l'intero cluster
+                else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
+                    clusters[c] = [x for x in clusters[c] if x not in clust]
+    
+                # 3. Calcola le probabilità di assegnazione del cluster
+                weights = self.cluster_probabilities(clust, clusters)
+                transitions = list(range(len(weights)))
+                transition = random.choices(transitions, weights=weights)[0]
+    
+                # 4. Applica la transizione
+                if transition == len(clusters):  # Se viene creato un nuovo cluster
+                    clusters.append(clust)
+                else:
+                    clusters[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
+            
+            # Fine del passo MCMC
+            self.history.append(copy.deepcopy(clusters))
+            
+            # Update metrics
+            self.update_metrics(metrics, clusters)
+    
+            # Update progress bar
+            progress_bar.update(1)
+    
+        # Chiudi progress bar
+        progress_bar.close()
+    
+        return self.history
 
     
