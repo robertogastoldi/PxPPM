@@ -711,7 +711,8 @@ class Second_Layer(Neal_3):
             for clust in initial_partition:
                 # 1. Trova il cluster che contiene `clust`
                 print("Cerco il cluster ", clust)
-                c = next((index for index, cluster in enumerate(clusters) if set(clust).issubset(set(cluster))))
+                c = next((index for index, cluster in enumerate(initial_partition) if set(clust).issubset(set(cluster))))
+
 
                 print("L'ho trovato in ", clusters[c])
                 # 2. Rimuove `clust` da `clusters`
