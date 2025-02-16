@@ -710,8 +710,6 @@ class Second_Layer(Neal_3):
     
             for clust in copy.deepcopy(initial_partition):
 
-                print(" ")
-                print("Cerco il cluster ", clust)
                 # 1. Trova il cluster che contiene `clust`
                 c = 0
                 for idx in range(len(clusters)):
@@ -719,7 +717,6 @@ class Second_Layer(Neal_3):
                         c = idx
                         break
 
-                print("L'ho trovato in ", clusters[c])
                 # 2. Rimuove `clust` da `clusters`
                 if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
                     del clusters[c]  # Rimuove l'intero cluster
@@ -736,8 +733,6 @@ class Second_Layer(Neal_3):
                     clusters.append(clust)
                 else:
                     clusters[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
-
-                print(clusters)
                 
             # Fine del passo MCMC
             self.history.append(copy.deepcopy(clusters))
@@ -768,6 +763,6 @@ class Second_Layer(Neal_3):
         """
 
         if "entropy" in metrics:
-            entropy = compute_entropy(clusters, label_format="list")
+            entropy = super().compute_entropy(clusters, label_format="list")
             self.metrics["entropy"].append(entropy)
         return
