@@ -708,7 +708,7 @@ class Second_Layer(Neal_3):
     
         for step in range(n_steps):  # Markov chain
     
-            for clust in self.initial_partition:
+            for clust in copy.deepcopy(initial_partition):
                 # 1. Trova il cluster che contiene `clust`
                 print(" ")
                 print("Cerco il cluster ", clust)
