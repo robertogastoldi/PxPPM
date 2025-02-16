@@ -713,7 +713,7 @@ class Second_Layer(Neal_3):
                 print("Cerco il cluster ", clust)
                 c = next((index for index, cluster in enumerate(clusters) if set(clust).issubset(set(cluster))))
 
-                print("L'ho trovato in ", cluster[c])
+                print("L'ho trovato in ", clusters[c])
                 # 2. Rimuove `clust` da `clusters`
                 if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
                     del clusters[c]  # Rimuove l'intero cluster
