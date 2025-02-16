@@ -726,7 +726,7 @@ class Second_Layer(Neal_3):
                     clusters[c] = [x for x in clusters[c] if x not in clust]
 
                 print("Ho rimosso ", clust)
-                print("Sono rimasti:" clusters)
+                print("Sono rimasti: ", clusters)
     
                 # 3. Calcola le probabilità di assegnazione del cluster
                 weights = self.cluster_probabilities(clust, clusters)
