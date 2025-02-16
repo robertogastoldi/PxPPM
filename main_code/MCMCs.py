@@ -483,4 +483,261 @@ class PPMx(Neal_3):
         self.X = X
         self.lambda_penalty = lambda_penalty
         return super().fit(Y, n_steps, metrics=metrics)
+
+
+
+class Second_Layer(Neal_3):
+    """
+    Extends Neal_3 class by including covariates
+    """
+
+    def __init__(self, alpha=0.1, lamb_0=1):
+        super().__init__(alpha=alpha, lamb_0=lamb_0)
+
+        # Attributes specific to algorithm with covariates
+        self.lambda_penalty = None
+        self.X = None
+        self.initial_partition = None
+        self.n_partitions = None
+
+    def compute_mahalanobis_penalty(self, cluster, clust):
+        """
+        Computes the Mahalanobis distance penalty for adding an observation to a cluster.
+
+        Parameters:
+            cluster (list of int): Indices of the observations in the current cluster.
+            clust (list of int): Indeces of the new observations being evaluated.
+
+        Returns:
+            penalty (float): The Mahalanobis distance between the new observation and the cluster.
+        """
+
+        # Combine current cluster observations and the new observation
+        cluster_data = np.array([self.X[idx] for idx in cluster] + [self.X[i] for i in clust])
+        cluster_mean = np.mean(cluster_data, axis=0)
+        cov_matrix = np.cov(cluster_data.T)
+
+        actual_X = np.array([self.X[i] for i in clust])
+        compress_X = np.mean(actual_X, axis=0)
+
+        penalty = mahalanobis(compress_X, cluster_mean, cov_matrix)
+        return penalty
+
+def compute_kernels(self, cluster):
+    """
+        Computes the second integral using the Student-t distribution based on Murphy (2007) parameters.
+
+        Parameters:
+            cluster (list of int): A list of observations in cluster clust for which the kernel is computed.
+
+        Returns:
+            float: The computed kernel value based on the observations in the cluster.
+    """
+    n = len(cluster)    # Number of element currently in cluster (used n to be consistent with Murphy (2007) notation)
+        
+        cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
+        cluster_mean = np.mean(cluster_Y, axis=0)
+
+        # Based on Murphy (2007)
+        mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
+        lamb_n = self.lamb_0 + n
+        nu_n = self.nu_0 + n
+        
+        # Compute scatter matrix
+        S = np.zeros((self.D,self.D))
+        for j in range(n):
+            temp = self.Y[j] - cluster_mean
+            S += np.outer(temp, temp)
+        temp = cluster_mean - self.mu_0
+        inv_scale_mat_n = self.inv_scale_mat_0 + S + ((self.lamb_0 * n) / (self.lamb_0 + n)) * np.outer(temp, temp)
+
+        # Computes integral using pdf of multivariate gaussian distribution
+        kernel = 1
+        for i in cluster:
+            kernel *= multivariate_normal.pdf(self.Y[i], mean=mu_n, cov=inv_scale_mat_n)
+        return kernel
+
+def integral_func_1(self, cluster, clust):
+        """
+        Computes the first integral using the Student-t distribution based on Murphy (2007) parameters.
+
+        Parameters:
+            cluster (list of int): A list of observation indices representing the current cluster.
+            clust (list of int): A list of observations in cluster clust.
+
+        Returns:
+            float: The computed integral value based on the Student-t probability density function.
+        """
+
+        n = len(cluster)    # Number of element currently in cluster (used n to be consistent with Murphy (2007) notation)
+        
+        cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
+        cluster_mean = np.mean(cluster_Y, axis=0)
+
+        # Based on Murphy (2007)
+        mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
+        lamb_n = self.lamb_0 + n
+        nu_n = self.nu_0 + n
+        
+        # Compute scatter matrix
+        S = np.zeros((self.D,self.D))
+        for j in range(n):
+            temp = self.Y[j] - cluster_mean
+            S += np.outer(temp, temp)
+        temp = cluster_mean - self.mu_0
+        inv_scale_mat_n = self.inv_scale_mat_0 + S + ((self.lamb_0 * n) / (self.lamb_0 + n)) * np.outer(temp, temp)
+
+        # Computes integral using pdf of student t
+        student_df = nu_n - self.D + 1
+
+        # Summary statistics to pass to the integral
+        actual_Y = np.array([self.Y[i] for i in clust])
+        compress_Y = np.mean(actual_Y, axis=0)
+    
+        integral = multivariate_t.pdf(compress_Y,
+                                    mu_n,
+                                    inv_scale_mat_n * ((lamb_n+1) / (lamb_n * student_df)),
+                                    student_df)
+        return integral
+
+def integral_func_2(self, clust):
+        """
+        Computes the second integral using the Student-t distribution based on Murphy (2007) parameters.
+
+        Parameters:
+            clust (list of int): A list of observations in cluster clust for which the integral is computed.
+
+        Returns:
+            float: The computed integral value based on the Student-t probability density function.
+        """
+
+        student_df = self.nu_0 - self.D + 1
+
+        # Computes integral using pdf of student t
+    
+        # Summary statistics to pass to the integral
+        actual_Y = np.array([self.Y[i] for i in clust])
+        compress_Y = np.mean(actual_Y, axis=0)
+    
+        integral = multivariate_t.pdf(compress_Y,
+                                    self.mu_0,
+                                    self.inv_scale_mat_0 * ((self.lamb_0 + 1) / (self.lamb_0 * student_df)),
+                                    student_df)
+        return integral
+
+def cluster_probabilities(self, clust, clusters):
+        """
+        Computes the weights for an observation joining existing clusters or creating a new one.
+
+        Parameters:
+            clust (list): The list of the observations belonging to clust.
+            clusters (list of lists): The current partitioning of observations, where each sublist 
+                                    contains indices of points belonging to a cluster.
+
+        Returns:
+            np.ndarray: An array of weights representing the likelihood of observation `i` joining 
+                        each existing cluster or forming a new one. The last element corresponds to 
+                        the weight of creating a new cluster.
+        """
+
+        n_clusters = len(clusters)
+        probabilities = np.zeros(n_clusters+1)
+
+        # Probabilities of joining existing cluster
+        for c in range(n_clusters):
+            probabilities[c] = self.integral_func_1(clusters[c], clust)
+            probabilities[c] *= self.compute_kernels(clusters[c])
+            probabilities[c] *= (len(clusters[c]) / (self.n_obs - 1 + self.alpha))
+
+        # Probability of creating new cluster
+        probabilities[-1] = self.integral_func_2(clust)
+        probabilities[-1] = self.compute_kernels(clust)
+        probabilities[-1] *= self.alpha / (self.n_obs - 1 + self.alpha)
+
+        n_clusters = len(clusters)
+        for c in range(n_clusters):
+            penalty = self.compute_mahalanobis_penalty(clusters[c], clust)
+            probabilities[c] *= np.exp(-self.lambda_penalty * penalty)
+
+        return probabilities
+
+def fit(self, Y, X, initial_partition, n_steps, lambda_penalty=0.1, metrics=["entropy"]):
+    """
+    Parameters:
+        Y (np.ndarray): A 2D array of observations, where each row represents an observation 
+                        and each column represents a feature. Shape is (n_observations, D).
+        X (numpy.ndarray): Covariate matrix used for computing the Mahalanobis penalty.
+        initial_partition (list of list): Optimal partition of the 1st layer.
+        n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
+                    moving each observation once.
+        lambda_penalty (float, optional): Weight for the Mahalanobis distance penalty. Defaults to 0.1.
+                                          If set to 0, this algorithm is equivalent to Neal_3.
+        metrics (list of str, optional): A list of metric names to compute during runtime. 
+                                        Currently, only "entropy" is implemented. Defaults to ["entropy"].
+
+    Returns:
+        list of lists: A history of partitions at each step of the Markov chain, where each 
+                    partition is represented as a list of clusters (each cluster is a list 
+                    of observation indices).
+    """
+    # Set basic attributes
+    self.X = X
+    self.lambda_penalty = lambda_penalty
+    self.initial_partition = initial_partition
+    self.n_partitions = len(initial_partition)
+    self.Y = Y
+    self.n_obs = len(Y)
+    self.D = Y.shape[1]
+    self.compute_mu_0()
+    self.compute_inv_scale_mat_0()
+    self.compute_nu_0()
+
+    # Initialize clusters
+    clusters = copy.deepcopy(initial_partition)  # Evita modifiche accidentali all'originale
+
+    self.history = [copy.deepcopy(clusters)]
+
+    # Update metrics
+    self.update_metrics(metrics, clusters)
+
+    # Initialize progress bar
+    progress_bar = tqdm(total=n_steps, desc="MCMC Progress", unit="step")
+
+    for step in range(n_steps):  # Markov chain
+
+        for clust in initial_partition:
+            # 1. Trova il cluster che contiene `clust`
+            c = next((index for index, cluster in enumerate(clusters) if set(clust) == set(cluster)), None)
+
+            # 2. Rimuove `clust` da `clusters`
+            if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
+                del clusters[c]  # Rimuove l'intero cluster
+            else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
+                clusters[c] = [x for x in clusters[c] if x not in clust]
+
+            # 3. Calcola le probabilità di assegnazione del cluster
+            weights = self.cluster_probabilities(clust, clusters)
+            transitions = list(range(len(weights)))
+            transition = random.choices(transitions, weights=weights)[0]
+
+            # 4. Applica la transizione
+            if transition == len(clusters):  # Se viene creato un nuovo cluster
+                clusters.append(clust)
+            else:
+                clusters[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
+        
+        # Fine del passo MCMC
+        self.history.append(copy.deepcopy(clusters))
+        
+        # Update metrics
+        self.update_metrics(metrics, clusters)
+
+        # Update progress bar
+        progress_bar.update(1)
+
+    # Chiudi progress bar
+    progress_bar.close()
+
+    return self.history
+
     
