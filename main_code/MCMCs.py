@@ -743,7 +743,7 @@ class Second_Layer(Neal_3):
             self.history.append(copy.deepcopy(clusters))
             
             # Update metrics
-            self.super().update_metrics(metrics, clusters)
+            self.update_metrics(metrics, clusters)
     
             # Update progress bar
             progress_bar.update(1)
@@ -753,4 +753,21 @@ class Second_Layer(Neal_3):
     
         return self.history
 
-    
+    # Functions for metrics
+    def update_metrics(self, metrics, clusters):
+        """
+        Updates the specified metrics during MCMC clustering.
+
+        Parameters:
+            metrics (list of str): A list of metric names to compute. Currently supports "entropy".
+            clusters (list of lists): The current partitioning of observations, where each sublist 
+                                    contains indices of points belonging to a cluster.
+
+        Returns:
+            None: Updates the stored metric values in `self.metrics` during the MCMC process.
+        """
+
+        if "entropy" in metrics:
+            entropy = compute_entropy(clusters, label_format="list")
+            self.metrics["entropy"].append(entropy)
+        return
