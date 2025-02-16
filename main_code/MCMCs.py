@@ -710,7 +710,7 @@ class Second_Layer(Neal_3):
     
             for clust in initial_partition:
                 # 1. Trova il cluster che contiene `clust`
-                c = next((index for index, cluster in enumerate(clusters) if set(clust) == set(cluster)), None)
+                c = next((index for index, cluster in enumerate(clusters) if set(clust).issubset(set(cluster))), None)
     
                 # 2. Rimuove `clust` da `clusters`
                 if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
