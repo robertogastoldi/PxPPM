@@ -563,7 +563,7 @@ class Second_Layer(Neal_3):
 
         Parameters:
             cluster (list of int): A list of observation indices representing the current cluster.
-            i (int): The index of the observation for which the integral is computed.
+            clust (list of int): A list of indexes' observation for which the integral is computed.
 
         Returns:
             float: The computed integral value based on the Student-t probability density function.
