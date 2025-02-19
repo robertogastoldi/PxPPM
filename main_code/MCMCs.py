@@ -555,7 +555,7 @@ class Second_Layer(Neal_3):
         # Computes integral using pdf of multivariate gaussian distribution
         kernel = 1
         for i in cluster:
-            kernel *= multivariate_normal.pdf(self.Y[i], mean=mu_n, cov=inv_scale_mat_n)
+            kernel *= multivariate_normal.pdf(self.Y[i], mean=mu_n, cov=(inv_scale_mat_n)/(nu_n - self.D + 1))
         return kernel
 
     def integral_func_1(self, cluster, clust):
