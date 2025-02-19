@@ -653,7 +653,7 @@ class Second_Layer(Neal_3):
 
         # Probability of creating new cluster
         probabilities[-1] = self.integral_func_2(clust)
-        probabilities[-1] = self.compute_kernels(clust)
+        probabilities[-1] *= self.compute_kernels(clust)
         probabilities[-1] *= self.alpha / (self.n_obs - 1 + self.alpha)
 
         n_clusters = len(clusters)
