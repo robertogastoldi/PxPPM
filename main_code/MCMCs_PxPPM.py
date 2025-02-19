@@ -487,7 +487,7 @@ class PPMx(Neal_3):
 
 
 
-class PxPPM:
+class PxPPM(Neal_3):
     """
     Extends Neal_3 class by including covariates
     """
@@ -556,7 +556,7 @@ class PxPPM:
             kernel *= multivariate_normal.pdf(self.Y[i], mean=mu_n, cov=inv_scale_mat_n)
         return kernel
 
-    def integral_func_1(self, cluster, clust):
+    def Integral_func_1(self, cluster, clust):
         """
         Computes the first integral using the Student-t distribution based on Murphy (2007) parameters.
 
@@ -599,7 +599,7 @@ class PxPPM:
                                     student_df)
         return integral
 
-    def integral_func_2(self, clust):
+    def Integral_func_2(self, clust):
         """
         Computes the second integral using the Student-t distribution based on Murphy (2007) parameters.
 
@@ -625,7 +625,7 @@ class PxPPM:
         return integral
 
   
-    def cluster_probabilities(self, clust, clusters):
+    def cluster_probabilities2(self, clust, clusters):
         """
         Computes the weights for an observation joining existing clusters or creating a new one.
 
@@ -645,12 +645,12 @@ class PxPPM:
 
         # Probabilities of joining existing cluster
         for c in range(n_clusters):
-            probabilities[c] = self.integral_func_1(clusters[c], clust)
+            probabilities[c] = self.Integral_func_1(clusters[c], clust)
             probabilities[c] *= self.compute_kernels(clusters[c])
             probabilities[c] *= (len(clusters[c]) / (self.n_obs - 1 + self.alpha))
 
         # Probability of creating new cluster
-        probabilities[-1] = self.integral_func_2(clust)
+        probabilities[-1] = self.Integral_func_2(clust)
         probabilities[-1] = self.compute_kernels(clust)
         probabilities[-1] *= self.alpha / (self.n_obs - 1 + self.alpha)
 
@@ -718,7 +718,7 @@ class PxPPM:
                     clusters[c].remove(i)
 
                 # 3. Compute probabilities of adding i to each cluster
-                weights = super().self.cluster_probabilities(i, clusters)
+                weights = super().cluster_probabilities(i, clusters)
                 transitions = list(range(len(weights)))
                 transition = random.choices(transitions, weights=weights)[0]
 
@@ -732,12 +732,13 @@ class PxPPM:
             # Secondo livello
 
             clusters_copy = copy.deepcopy(clusters)
+            initial_partition = copy.deepcopy(clusters)
             
-            for clust in copy.deepcopy(clusters):
+            for clust in copy.deepcopy(initial_partition):
 
                 # 1. Trova il cluster che contiene `clust`
                 c = 0
-                for idx in range(len(clusters)):
+                for idx in range(len(clusters_copy)):
                     if set(clust).issubset(set(clusters_copy[idx])):
                         c = idx
                         break
@@ -749,12 +750,13 @@ class PxPPM:
                     clusters_copy[c] = [x for x in clusters_copy[c] if x not in clust]
     
                 # 3. Calcola le probabilità di assegnazione del cluster
-                weights = self.cluster_probabilities(clust, clusters_copy)
+                weights = self.cluster_probabilities2(clust, clusters_copy)
+                weights[-1] += 1e-6 # aggiunto un numero piccolo per evitare che gli weights siano tutti 0 secondo python
                 transitions = list(range(len(weights)))
                 transition = random.choices(transitions, weights=weights)[0]
     
                 # 4. Applica la transizione
-                if transition == len(clusters):  # Se viene creato un nuovo cluster
+                if transition == len(clusters_copy):  # Se viene creato un nuovo cluster
                     clusters_copy.append(clust)
                 else:
                     clusters_copy[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
