@@ -487,7 +487,7 @@ class PPMx(Neal_3):
 
 
 
-class Second_Layer(Neal_3):
+class PxPPM:
     """
     Extends Neal_3 class by including covariates
     """
@@ -498,8 +498,6 @@ class Second_Layer(Neal_3):
         # Attributes specific to algorithm with covariates
         self.lambda_penalty = None
         self.X = None
-        self.initial_partition = None
-        self.n_partitions = None
 
     def compute_mahalanobis_penalty(self, cluster, clust):
         """
@@ -664,13 +662,12 @@ class Second_Layer(Neal_3):
         return probabilities
 
 
-    def fit(self, Y, X, initial_partition, n_steps, lambda_penalty=0.1, metrics=["entropy"]):
+    def fit(self, Y, X, n_steps, lambda_penalty=0.1, metrics=["entropy"]):
         """
         Parameters:
             Y (np.ndarray): A 2D array of observations, where each row represents an observation 
                             and each column represents a feature. Shape is (n_observations, D).
             X (numpy.ndarray): Covariate matrix used for computing the Mahalanobis penalty.
-            initial_partition (list of list): Optimal partition of the 1st layer.
             n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
                         moving each observation once.
             lambda_penalty (float, optional): Weight for the Mahalanobis distance penalty. Defaults to 0.1.
@@ -686,17 +683,15 @@ class Second_Layer(Neal_3):
         # Set basic attributes
         self.X = X
         self.lambda_penalty = lambda_penalty
-        self.initial_partition = initial_partition
-        self.n_partitions = len(initial_partition)
         self.Y = Y
         self.n_obs = len(Y)
         self.D = Y.shape[1]
         self.compute_mu_0()
         self.compute_inv_scale_mat_0()
         self.compute_nu_0()
-    
+
         # Initialize clusters
-        clusters = copy.deepcopy(initial_partition)  # Evita modifiche accidentali all'originale
+        clusters = [[i] for i in range(self.n_obs)]
     
         self.history = [copy.deepcopy(clusters)]
     
@@ -707,8 +702,35 @@ class Second_Layer(Neal_3):
         progress_bar = tqdm(total=n_steps, desc="MCMC Progress", unit="step")
     
         for step in range(n_steps):  # Markov chain
-    
-            for clust in copy.deepcopy(initial_partition):
+
+            # Primo Livello
+            for i in range(self.n_obs):  # 1 step of the Markov chain
+                # 1. Find in which cluster the observation is
+                c = 0
+                for index in range(len(clusters)):
+                    if i in clusters[index]:
+                        c = index
+                        break
+                # 2. Remove observation i from clusters:
+                if len(clusters[c]) == 1:  # Case 1: i is the only element of the cluster -> remove cluster
+                    del clusters[c]
+                else:  # Case 2: cluster has more than 1 element -> remove i from the cluster
+                    clusters[c].remove(i)
+
+                # 3. Compute probabilities of adding i to each cluster
+                weights = super().self.cluster_probabilities(i, clusters)
+                transitions = list(range(len(weights)))
+                transition = random.choices(transitions, weights=weights)[0]
+
+                # 4. Apply transition 
+                if transition == len(clusters):  # add new cluster
+                    clusters.append([i])
+                else:
+                    clusters[transition].append(i)
+
+            
+            # Secondo livello
+            for clust in copy.deepcopy(clusters):
 
                 # 1. Trova il cluster che contiene `clust`
                 c = 0
