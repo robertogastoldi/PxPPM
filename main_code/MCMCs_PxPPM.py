@@ -730,33 +730,37 @@ class PxPPM:
 
             
             # Secondo livello
+
+            clusters_copy = copy.deepcopy(clusters)
+            
             for clust in copy.deepcopy(clusters):
 
                 # 1. Trova il cluster che contiene `clust`
                 c = 0
                 for idx in range(len(clusters)):
-                    if set(clust).issubset(set(clusters[idx])):
+                    if set(clust).issubset(set(clusters_copy[idx])):
                         c = idx
                         break
 
                 # 2. Rimuove `clust` da `clusters`
-                if set(clusters[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
-                    del clusters[c]  # Rimuove l'intero cluster
+                if set(clusters_copy[c]) == set(clust):  # Se `clust` è l'unico elemento nel cluster
+                    del clusters_copy[c]  # Rimuove l'intero cluster
                 else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
-                    clusters[c] = [x for x in clusters[c] if x not in clust]
+                    clusters_copy[c] = [x for x in clusters_copy[c] if x not in clust]
     
                 # 3. Calcola le probabilità di assegnazione del cluster
-                weights = self.cluster_probabilities(clust, clusters)
+                weights = self.cluster_probabilities(clust, clusters_copy)
                 transitions = list(range(len(weights)))
                 transition = random.choices(transitions, weights=weights)[0]
     
                 # 4. Applica la transizione
                 if transition == len(clusters):  # Se viene creato un nuovo cluster
-                    clusters.append(clust)
+                    clusters_copy.append(clust)
                 else:
-                    clusters[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
+                    clusters_copy[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
                 
             # Fine del passo MCMC
+            clusters = copy.deepcopy(clusters_copy)
             self.history.append(copy.deepcopy(clusters))
             
             # Update metrics
