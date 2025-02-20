@@ -14,7 +14,7 @@ class Neal_3:
     """
 
     def __init__(self, alpha=0.1, lamb_0=1):
-        
+
         # Initialize attributes
 
         # These use default values that can be changed
@@ -35,9 +35,9 @@ class Neal_3:
         # Saving the point estimate computed via Binder loss minimization
         self.optimal_clustering = None
         self.optimal_loss = None
-        
+
         self.metrics = {"entropy":[]}
-        return 
+        return
 
 
     # Model hyper-parameter functions
@@ -50,7 +50,7 @@ class Neal_3:
             raise ValueError("No dimension D provided to compute nu_0")
 
         self.nu_0 = self.D + 3
-    
+
     def compute_mu_0(self):
         """
         Computes and set the value for mu_0 as the mean of the data.
@@ -58,7 +58,7 @@ class Neal_3:
 
         if self.Y is None:
             raise ValueError("No data Y provided to compute mu_0")
-        
+
         self.mu_0 = np.mean(self.Y, axis=0)
 
     def compute_inv_scale_mat_0(self):
@@ -84,7 +84,7 @@ class Neal_3:
         """
 
         n = len(cluster)    # Number of element currently in cluster (used n to be consistent with Murphy (2007) notation)
-        
+
         cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
         cluster_mean = np.mean(cluster_Y, axis=0)
 
@@ -92,7 +92,7 @@ class Neal_3:
         mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
         lamb_n = self.lamb_0 + n
         nu_n = self.nu_0 + n
-        
+
         # Compute scatter matrix
         S = np.zeros((self.D,self.D))
         for j in range(n):
@@ -108,7 +108,7 @@ class Neal_3:
                                     inv_scale_mat_n * ((lamb_n+1) / (lamb_n * student_df)),
                                     student_df)
         return integral
-    
+
     def integral_func_2(self, i):
         """
         Computes the second integral using the Student-t distribution based on Murphy (2007) parameters.
@@ -137,12 +137,12 @@ class Neal_3:
 
         Parameters:
             i (int): The index of the observation to evaluate.
-            clusters (list of lists): The current partitioning of observations, where each sublist 
+            clusters (list of lists): The current partitioning of observations, where each sublist
                                     contains indices of points belonging to a cluster.
 
         Returns:
-            np.ndarray: An array of weights representing the likelihood of observation `i` joining 
-                        each existing cluster or forming a new one. The last element corresponds to 
+            np.ndarray: An array of weights representing the likelihood of observation `i` joining
+                        each existing cluster or forming a new one. The last element corresponds to
                         the weight of creating a new cluster.
         """
 
@@ -165,16 +165,16 @@ class Neal_3:
         Performs Markov Chain Monte Carlo (MCMC) clustering using Algorithm 3 from Neal (2000).
 
         Parameters:
-            Y (np.ndarray): A 2D array of observations, where each row represents an observation 
+            Y (np.ndarray): A 2D array of observations, where each row represents an observation
                             and each column represents a feature. Shape is (n_observations, D).
-            n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
+            n_steps (int): The number of MCMC steps to perform. One step consists of randomly
                         moving each observation once.
-            metrics (list of str, optional): A list of metric names to compute during runtime. 
+            metrics (list of str, optional): A list of metric names to compute during runtime.
                                             Currently, only "entropy" is implemented. Defaults to ["entropy"].
 
         Returns:
-            list of lists: A history of partitions at each step of the Markov chain, where each 
-                        partition is represented as a list of clusters (each cluster is a list 
+            list of lists: A history of partitions at each step of the Markov chain, where each
+                        partition is represented as a list of clusters (each cluster is a list
                         of observation indices).
         """
 
@@ -216,15 +216,15 @@ class Neal_3:
                 transitions = list(range(len(weights)))
                 transition = random.choices(transitions, weights=weights)[0]
 
-                # 4. Apply transition 
+                # 4. Apply transition
                 if transition == len(clusters):  # add new cluster
                     clusters.append([i])
                 else:
                     clusters[transition].append(i)
-            
+
             # All elements have moved once -> one step of the Markov chain
             self.history.append(copy.deepcopy(clusters))
-            
+
             # Update_metrics
             self.update_metrics(metrics, clusters)
 
@@ -234,7 +234,7 @@ class Neal_3:
         # Close progress bar
         progress_bar.close()
 
-        return self.history    
+        return self.history
 
     # Functions for metrics
     def update_metrics(self, metrics, clusters):
@@ -243,7 +243,7 @@ class Neal_3:
 
         Parameters:
             metrics (list of str): A list of metric names to compute. Currently supports "entropy".
-            clusters (list of lists): The current partitioning of observations, where each sublist 
+            clusters (list of lists): The current partitioning of observations, where each sublist
                                     contains indices of points belonging to a cluster.
 
         Returns:
@@ -261,11 +261,11 @@ class Neal_3:
         Computes the similarity matrix based on the MCMC clustering history.
 
         Parameters:
-            burn_in (int, optional): The number of initial iterations to discard before computing 
+            burn_in (int, optional): The number of initial iterations to discard before computing
                                     the similarity matrix. Defaults to 0.
 
         Returns:
-            np.ndarray: A (n_obs, n_obs) similarity matrix, where each entry (i, j) represents 
+            np.ndarray: A (n_obs, n_obs) similarity matrix, where each entry (i, j) represents
                         the proportion of MCMC samples in which observations i and j were clustered together.
         """
 
@@ -300,7 +300,7 @@ class Neal_3:
         # Both save the matrix and return it
         self.similatity_matrix = A
         return A
-    
+
     def binder_loss(self, clustering, alpha=1.0, beta=1.0):
         """
         Computes the Binder loss for a given clustering.
@@ -313,7 +313,7 @@ class Neal_3:
             beta (float, optional): Weight for between-cluster disagreements. Defaults to 1.0.
 
         Returns:
-            float: The computed Binder loss value, representing the disagreement between the clustering 
+            float: The computed Binder loss value, representing the disagreement between the clustering
                 and the posterior similarity matrix.
         """
 
@@ -326,7 +326,7 @@ class Neal_3:
                     labels[index] = cluster_id
         else:
             labels = np.array(clustering)
-        
+
         # Compute the Binder loss
         loss = 0.0
         N = self.similatity_matrix.shape[0]
@@ -335,7 +335,7 @@ class Neal_3:
                 same_cluster = labels[i] == labels[j]
                 loss += alpha * same_cluster * (1 - self.similatity_matrix[i, j]) + beta * (not same_cluster) * self.similatity_matrix[i, j]
         return loss
-    
+
     def find_optimal_clustering(self, alpha=1.0, beta=1.0):
         """
         Finds the clustering that minimizes the Binder loss.
@@ -351,7 +351,7 @@ class Neal_3:
 
         if self.similatity_matrix is None:
             raise ValueError("Similarity matrix not yet computed")
-        
+
         # Set a very big number to initialize the loss
         self.optimal_loss = 1e9
 
@@ -369,9 +369,9 @@ class Neal_3:
 
         # Close progress bar
         progress_bar.close()
-        
+
         return self.optimal_clustering, self.optimal_loss
-    
+
     def save(self, file_path):
         """
         Saves the current object to a file.
@@ -437,17 +437,17 @@ class PPMx(Neal_3):
 
     def cluster_probabilities(self, i, clusters):
         """
-        Computes the weights for an observation joining existing clusters or creating a new one, 
+        Computes the weights for an observation joining existing clusters or creating a new one,
             incorporating a Mahalanobis distance penalty.
 
         Parameters:
             i (int): The index of the observation to evaluate.
-            clusters (list of lists): The current partitioning of observations, where each sublist 
+            clusters (list of lists): The current partitioning of observations, where each sublist
                                     contains indices of points belonging to a cluster.
 
         Returns:
-            np.ndarray: An array of weights representing the likelihood of observation `i` joining 
-                        each existing cluster or forming a new one, adjusted with the Mahalanobis penalty. 
+            np.ndarray: An array of weights representing the likelihood of observation `i` joining
+                        each existing cluster or forming a new one, adjusted with the Mahalanobis penalty.
                         The last element corresponds to the weight of creating a new cluster.
         """
 
@@ -457,27 +457,27 @@ class PPMx(Neal_3):
         for c in range(n_clusters):
             penalty = self.compute_mahalanobis_penalty(clusters[c], i)
             probabilities[c] *= np.exp(-self.lambda_penalty * penalty)
-        
+
         return probabilities
-    
+
     def fit(self, Y, X, n_steps, lambda_penalty=0.1, metrics=["entropy"]):
         """
         Performs Markov Chain Monte Carlo (MCMC) clustering using Algorithm 3 from Neal (2000).
 
         Parameters:
-            Y (np.ndarray): A 2D array of observations, where each row represents an observation 
+            Y (np.ndarray): A 2D array of observations, where each row represents an observation
                             and each column represents a feature. Shape is (n_observations, D).
             X (numpy.ndarray): Covariate matrix used for computing the Mahalanobis penalty.
-            n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
+            n_steps (int): The number of MCMC steps to perform. One step consists of randomly
                         moving each observation once.
             lambda_penalty (float, optional): Weight for the Mahalanobis distance penalty. Defaults to 0.1.
                                               If set to 0, this algorithm is equivalent to Neal_3.
-            metrics (list of str, optional): A list of metric names to compute during runtime. 
+            metrics (list of str, optional): A list of metric names to compute during runtime.
                                             Currently, only "entropy" is implemented. Defaults to ["entropy"].
 
         Returns:
-            list of lists: A history of partitions at each step of the Markov chain, where each 
-                        partition is represented as a list of clusters (each cluster is a list 
+            list of lists: A history of partitions at each step of the Markov chain, where each
+                        partition is represented as a list of clusters (each cluster is a list
                         of observation indices).
         """
 
@@ -535,7 +535,7 @@ class Second_Layer(Neal_3):
             float: The computed kernel value based on the observations in the cluster.
             """
         n = len(cluster)    # Number of element currently in cluster (used n to be consistent with Murphy (2007) notation)
-        
+
         cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
         cluster_mean = np.mean(cluster_Y, axis=0)
 
@@ -543,7 +543,7 @@ class Second_Layer(Neal_3):
         mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
         lamb_n = self.lamb_0 + n
         nu_n = self.nu_0 + n
-        
+
         # Compute scatter matrix
         S = np.zeros((self.D,self.D))
         for j in range(n):
@@ -571,7 +571,7 @@ class Second_Layer(Neal_3):
         """
 
         n = len(cluster)    # Number of element currently in cluster (used n to be consistent with Murphy (2007) notation)
-        
+
         cluster_Y = self.Y[np.isin(np.arange(self.n_obs), cluster)]
         cluster_mean = np.mean(cluster_Y, axis=0)
 
@@ -579,7 +579,7 @@ class Second_Layer(Neal_3):
         mu_n = (self.lamb_0 * self.mu_0 + n * cluster_mean) / (self.lamb_0 + n)
         lamb_n = self.lamb_0 + n
         nu_n = self.nu_0 + n
-        
+
         # Compute scatter matrix
         S = np.zeros((self.D,self.D))
         for j in range(n):
@@ -594,7 +594,7 @@ class Second_Layer(Neal_3):
         # Summary statistics to pass to the integral
         actual_Y = np.array([self.Y[i] for i in clust])
         compress_Y = np.mean(actual_Y, axis=0)
-        
+
         integral = multivariate_t.pdf(compress_Y,
                                     mu_n,
                                     inv_scale_mat_n * ((lamb_n+1) / (lamb_n * student_df)),
@@ -615,30 +615,30 @@ class Second_Layer(Neal_3):
         student_df = self.nu_0 - self.D + 1
 
         # Computes integral using pdf of student t
-    
+
         # Summary statistics to pass to the integral
         actual_Y = np.array([self.Y[i] for i in clust])
         compress_Y = np.mean(actual_Y, axis=0)
-    
+
         integral = multivariate_t.pdf(compress_Y,
                                     self.mu_0,
                                     self.inv_scale_mat_0 * ((self.lamb_0 + 1) / (self.lamb_0 * student_df)),
                                     student_df)
         return integral
 
-  
+
     def cluster_probabilities(self, clust, clusters):
         """
         Computes the weights for an observation joining existing clusters or creating a new one.
 
         Parameters:
             clust (list): The list of the observations belonging to clust.
-            clusters (list of lists): The current partitioning of observations, where each sublist 
+            clusters (list of lists): The current partitioning of observations, where each sublist
                                     contains indices of points belonging to a cluster.
 
         Returns:
-            np.ndarray: An array of weights representing the likelihood of observation `i` joining 
-                        each existing cluster or forming a new one. The last element corresponds to 
+            np.ndarray: An array of weights representing the likelihood of observation `i` joining
+                        each existing cluster or forming a new one. The last element corresponds to
                         the weight of creating a new cluster.
         """
 
@@ -667,20 +667,20 @@ class Second_Layer(Neal_3):
     def fit(self, Y, X, initial_partition, n_steps, lambda_penalty=0.1, metrics=["entropy"]):
         """
         Parameters:
-            Y (np.ndarray): A 2D array of observations, where each row represents an observation 
+            Y (np.ndarray): A 2D array of observations, where each row represents an observation
                             and each column represents a feature. Shape is (n_observations, D).
             X (numpy.ndarray): Covariate matrix used for computing the Mahalanobis penalty.
             initial_partition (list of list): Optimal partition of the 1st layer.
-            n_steps (int): The number of MCMC steps to perform. One step consists of randomly 
+            n_steps (int): The number of MCMC steps to perform. One step consists of randomly
                         moving each observation once.
             lambda_penalty (float, optional): Weight for the Mahalanobis distance penalty. Defaults to 0.1.
                                               If set to 0, this algorithm is equivalent to Neal_3.
-            metrics (list of str, optional): A list of metric names to compute during runtime. 
+            metrics (list of str, optional): A list of metric names to compute during runtime.
                                             Currently, only "entropy" is implemented. Defaults to ["entropy"].
-    
+
         Returns:
-            list of lists: A history of partitions at each step of the Markov chain, where each 
-                        partition is represented as a list of clusters (each cluster is a list 
+            list of lists: A history of partitions at each step of the Markov chain, where each
+                        partition is represented as a list of clusters (each cluster is a list
                         of observation indices).
         """
         # Set basic attributes
@@ -694,20 +694,20 @@ class Second_Layer(Neal_3):
         self.compute_mu_0()
         self.compute_inv_scale_mat_0()
         self.compute_nu_0()
-    
+
         # Initialize clusters
         clusters = copy.deepcopy(initial_partition)  # Evita modifiche accidentali all'originale
-    
+
         self.history = [copy.deepcopy(clusters)]
-    
+
         # Update metrics
         self.update_metrics(metrics, clusters)
-    
+
         # Initialize progress bar
         progress_bar = tqdm(total=n_steps, desc="MCMC Progress", unit="step")
-    
+
         for step in range(n_steps):  # Markov chain
-    
+
             for clust in copy.deepcopy(initial_partition):
 
                 # 1. Trova il cluster che contiene `clust`
@@ -722,28 +722,28 @@ class Second_Layer(Neal_3):
                     del clusters[c]  # Rimuove l'intero cluster
                 else:  # Se ci sono altri elementi nel cluster, rimuove solo `clust`
                     clusters[c] = [x for x in clusters[c] if x not in clust]
-    
+
                 # 3. Calcola le probabilità di assegnazione del cluster
                 weights = self.cluster_probabilities(clust, clusters)
                 transitions = list(range(len(weights)))
                 transition = random.choices(transitions, weights=weights)[0]
-    
+
                 # 4. Applica la transizione
                 if transition == len(clusters):  # Se viene creato un nuovo cluster
                     clusters.append(clust)
                 else:
                     clusters[transition].extend(clust)  # Aggiunge `clust` a un cluster esistente
-                
+
             # Fine del passo MCMC
             self.history.append(copy.deepcopy(clusters))
-            
+
             # Update metrics
             self.update_metrics(metrics, clusters)
-    
+
             # Update progress bar
             progress_bar.update(1)
-    
+
         # Chiudi progress bar
         progress_bar.close()
-    
+
         return self.history
