@@ -488,13 +488,14 @@ class PPMx(Neal_3):
 
 class PxPPM(Neal_3):
 
-    def __init__(self, alpha=1.0, alpha_super=1.0, lamb_0=1.0, kappa_0_super=1.0):
+    def __init__(self, alpha=1.0, alpha_super=1.0, lamb_0=1.0, kappa_0_super=1.0, lambda_penalty=1.0):
         # initialization of the base class
         super().__init__(alpha=alpha, lamb_0=lamb_0)
         
         # Livello 2 parameters
         self.alpha_super = alpha_super  # Propensity to create new super-cluster
         self.kappa_0_super = kappa_0_super # The “strength” of the prior on the covariates level
+        self.lambda_penalty = lambda_penalty
         
         self.mu_0_super = None
         self.nu_0_super = None
@@ -529,6 +530,26 @@ class PxPPM(Neal_3):
         scale_matrix = (scale_matrix + scale_matrix.T) / 2
         
         return multivariate_t.pdf(self.Y[i], mu_n, scale_matrix, student_df)
+    
+    def compute_mahalanobis_penalty(self, cluster, i):
+        """
+        Computes the Mahalanobis distance penalty for adding an observation to a cluster.
+
+        Parameters:
+            cluster (list of int): Indices of the observations in the current cluster.
+            i (int): Index of the new observation being evaluated.
+
+        Returns:
+            penalty (float): The Mahalanobis distance between the new observation and the cluster.
+        """
+
+        # Combine current cluster observations and the new observation
+        cluster_data = np.array([self.X[idx] for idx in cluster] + [self.X[i]])
+        cluster_mean = np.mean(cluster_data, axis=0)
+        cov_matrix = np.cov(cluster_data.T)
+
+        penalty = mahalanobis(self.X[i], cluster_mean, cov_matrix)
+        return penalty
     
     def _sync_remove_subcluster(self, sub_idx_dead, super_clusters):
         """ 
@@ -660,7 +681,7 @@ class PxPPM(Neal_3):
         
         for step in range(n_steps):
             
-            # Level 1: PPM on observations
+            # Level 1: PPMx on observations
             for i in range(self.n_obs):
                 c_idx = next(idx for idx, cl in enumerate(sub_clusters) if i in cl)
                 
@@ -670,8 +691,12 @@ class PxPPM(Neal_3):
                 else:
                     sub_clusters[c_idx].remove(i)
 
-                # Compute probability
+                # Compute PPM probability 
                 weights = self.cluster_probabilities(i, sub_clusters)
+                for c in range(len(sub_clusters)):
+                    # Add similarity penaltt
+                    penalty = self.compute_mahalanobis_penalty(sub_clusters[c], i)
+                    weights[c] *= np.exp(-self.lambda_penalty * penalty)
                 trans = random.choices(range(len(weights)), weights=weights)[0]
 
                 if trans == len(sub_clusters):
